@@ -1,0 +1,11 @@
+# Keep LF on every checkout so a Windows clone builds the same bytes as Linux.
+* text=auto eol=lf
+
+*.bat      text eol=crlf
+
+*.jar      binary
+*.jks      binary
+*.keystore binary
+*.png      binary
+*.jpg      binary
+*.webp     binary

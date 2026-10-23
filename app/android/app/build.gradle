@@ -1,0 +1,146 @@
+apply plugin: "com.android.application"
+apply plugin: "org.jetbrains.kotlin.android"
+apply plugin: "com.facebook.react"
+
+def rnEntry = project.findProperty("rnEntry") ?: "index.js"
+
+react {
+    autolinkLibrariesWithApp()
+
+    // Each app bundles its own JS entry, so the signer bundle carries no
+    // network code. The plugin takes one entry for all variants: build one
+    // app at a time with -PrnEntry=index.signer.js or index.broadcaster.js.
+    entryFile = file("../../${rnEntry}")
+}
+
+def enableProguardInReleaseBuilds = false
+
+def jscFlavor = 'io.github.react-native-community:jsc-android:2026004.+'
+
+// versionName is the only version to edit. 1.2.3 becomes 10203, so the code
+// always rises with the name and cannot be forgotten on a release.
+static int versionCodeFrom(String name) {
+    def parts = name.tokenize('.')
+    if (parts.size() != 3) {
+        throw new GradleException("versionName must read major.minor.patch, got ${name}")
+    }
+    def (major, minor, patch) = parts.collect { it.toInteger() }
+    if (minor > 99 || patch > 99) {
+        throw new GradleException("minor and patch must stay below 100, got ${name}")
+    }
+    return major * 10000 + minor * 100 + patch
+}
+
+// Release signing. keystore.properties is git-ignored and points at a keystore
+// kept outside the repository, so neither the key nor its password is here.
+// Only -Pdist (a build meant for distribution) uses that key; every other
+// release build is signed with the debug key, so test builds keep installing
+// over each other and an outside verifier needs no key. -Pdist refuses to run
+// without the key, so a debug-signed APK cannot be mistaken for a release.
+def dist = project.hasProperty("dist")
+def keystorePropsFile = rootProject.file("keystore.properties")
+def keystoreProps = new Properties()
+if (dist) {
+    if (!keystorePropsFile.exists()) {
+        throw new GradleException("-Pdist needs android/keystore.properties, which names the release keystore.")
+    }
+    keystorePropsFile.withInputStream { keystoreProps.load(it) }
+}
+
+android {
+    ndkVersion rootProject.ext.ndkVersion
+    buildToolsVersion rootProject.ext.buildToolsVersion
+    compileSdk rootProject.ext.compileSdkVersion
+
+    namespace "io.github.heiheiskippy.paperwallethelper"
+
+    // The Play dependency blob is encrypted afresh on every build, so two
+    // builds of the same source never match. It is only read by Play.
+    dependenciesInfo {
+        includeInApk false
+        includeInBundle false
+    }
+
+    defaultConfig {
+        targetSdkVersion rootProject.ext.targetSdkVersion
+        versionName "1.0.0"
+        versionCode versionCodeFrom(versionName)
+    }
+
+    flavorDimensions "app"
+    productFlavors {
+        signer {
+            dimension "app"
+            applicationId "io.github.heiheiskippy.paperwallethelper.signer"
+            minSdkVersion 28
+            resValue "string", "app_name", "PaperWallet Helper Offline"
+        }
+        broadcaster {
+            dimension "app"
+            applicationId "io.github.heiheiskippy.paperwallethelper.broadcaster"
+            minSdkVersion 34
+            resValue "string", "app_name", "PaperWallet Helper Online"
+        }
+    }
+    signingConfigs {
+        debug {
+            storeFile file('debug.keystore')
+            storePassword 'android'
+            keyAlias 'androiddebugkey'
+            keyPassword 'android'
+        }
+        release {
+            if (dist) {
+                storeFile file(keystoreProps["storeFile"])
+                storePassword keystoreProps["storePassword"]
+                keyAlias keystoreProps["keyAlias"]
+                keyPassword keystoreProps["keyPassword"]
+            }
+        }
+    }
+    buildTypes {
+        debug {
+            signingConfig signingConfigs.debug
+        }
+        release {
+            signingConfig dist ? signingConfigs.release : signingConfigs.debug
+            minifyEnabled enableProguardInReleaseBuilds
+            proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
+        }
+    }
+}
+
+// A signer build with any other JS entry would ship the wrong bundle.
+android.applicationVariants.all { variant ->
+    def expected = variant.flavorName == "signer" ? "index.signer.js" : null
+    def wrong = expected != null ? rnEntry != expected : rnEntry == "index.signer.js"
+    if (wrong) {
+        variant.preBuildProvider.configure {
+            doFirst {
+                throw new GradleException("${variant.name} cannot be built with -PrnEntry=${rnEntry}")
+            }
+        }
+    }
+}
+
+dependencies {
+    implementation("com.facebook.react:react-android")
+
+    // App lock at every launch. Contributes USE_BIOMETRIC.
+    implementation("androidx.biometric:biometric:1.1.0")
+
+    // Not 1.6+, where camera-view reaches media3 and that declares
+    // ACCESS_NETWORK_STATE.
+    implementation("androidx.camera:camera-core:1.5.3")
+    implementation("androidx.camera:camera-camera2:1.5.3")
+    implementation("androidx.camera:camera-lifecycle:1.5.3")
+    implementation("androidx.camera:camera-view:1.5.3")
+    // Bundled model: works offline.
+    implementation("com.google.mlkit:barcode-scanning:17.3.0")
+
+    if (hermesEnabled.toBoolean()) {
+        implementation("com.facebook.react:hermes-android")
+    } else {
+        implementation jscFlavor
+    }
+}

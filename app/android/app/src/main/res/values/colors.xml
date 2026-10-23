@@ -1,0 +1,9 @@
+<resources>
+
+    <!-- Must match colors.background in src/theme.ts so the launch screen
+         hands over to the first screen without a jump in colour. -->
+    <color name="app_background">#0C0C0E</color>
+
+    <color name="ic_launcher_background">#172944</color>
+
+</resources>

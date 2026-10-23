@@ -1,0 +1,3 @@
+<resources>
+    <string name="tapjacking_blocked">Touch input was blocked because another app is covering the screen. Please turn off apps that draw over other apps, such as blue light filters.</string>
+</resources>
