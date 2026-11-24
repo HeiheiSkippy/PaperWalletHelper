@@ -63,6 +63,7 @@ const ko: Dict = {
   'signer.home.step2': '수신 주소와 수량 확인',
   'signer.home.step3': '종이지갑 개인키 QR로 서명',
   'signer.home.load': '거래 불러오기',
+  'signer.home.addresses': '공개주소 확인',
   'signer.home.settings': '설정',
 
   'signer.step.tx': '거래 QR',
@@ -127,16 +128,21 @@ const ko: Dict = {
   'signer.err.key.range': '올바른 개인키가 아닙니다.',
   'signer.err.key.not-this-key': '발신 주소의 개인키가 아닙니다.',
   'signer.err.key.evm-for-btc': 'EVM 개인키입니다. BTC·BMB 종이지갑의 개인키 QR을 읽어 주십시오.',
-  'signer.err.key.btc-for-evm': 'BTC·BMB 개인키입니다. EVM 종이지갑의 개인키 QR을 읽어 주십시오.',
 
   'signer.result.title': '서명 완료',
   'signer.result.lead': '전송앱에서 서명된 거래 불러오기를 눌러 이 QR을 읽어 주십시오.',
+  'signer.addr.title': '공개주소 확인',
+  'signer.addr.scanHint': '종이지갑의 개인키 QR을 네모 안에 맞춰 주십시오.',
+  'signer.addr.tab.btc': 'BTC·BMB',
+  'signer.addr.tab.evm': 'EVM(BSC)',
+  'signer.addr.address': '공개주소',
   'qr.pieces': '움직이는 QR {total}장',
 
   'common.cancel': '취소',
 
-  'bc.home.add': '+ 공개주소 등록',
-  'bc.home.empty': '등록한 종이지갑이 없습니다. 공개주소 QR을 등록하면 잔액을 볼 수 있습니다.',
+  'bc.home.lookup': '잔액 조회',
+  'bc.home.list': '등록된 공개주소 목록',
+  'bc.home.empty': '등록한 공개주소가 없습니다.',
   'bc.home.send': '송금하기',
   'bc.home.settings': '설정',
   'bc.home.reorder': '순서 바꾸기',
@@ -149,6 +155,9 @@ const ko: Dict = {
   'bc.pending.change': '잔돈 확인 대기 +{amount}',
   'bc.balance.refresh': '잔액 새로 고침',
 
+  'bc.lookup.title': '잔액 조회',
+  'bc.lookup.register': '등록',
+  'bc.lookup.registered': '✓ 등록됨',
   'bc.scanWallet.title': '공개주소 QR 읽기',
   'bc.scanWallet.hint': '종이지갑의 공개주소 QR을 네모 안에 맞춰 주십시오.',
   'bc.addr.err.private-key': '개인키 QR입니다. 전송앱에서는 공개주소 QR만 읽습니다.',

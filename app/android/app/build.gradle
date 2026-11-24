@@ -63,7 +63,7 @@ android {
 
     defaultConfig {
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionName "1.0.0"
+        versionName "1.1.0"
         versionCode versionCodeFrom(versionName)
     }
 

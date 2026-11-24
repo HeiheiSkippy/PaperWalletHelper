@@ -17,7 +17,8 @@ import { CONSENT_VERSION, Settings, loadSettings, saveSettings, settingsTampered
 import { settingsStore } from '../specs/NativeSettingsStore';
 import { Language, t } from '../strings';
 import { Loaded } from '../tx';
-import { load, signLoaded } from './flow';
+import AddressScreen from './AddressScreen';
+import { KeyAddresses, addressesOfKeyQr, load, signLoaded } from './flow';
 import HomeScreen from './HomeScreen';
 import ResultScreen from './ResultScreen';
 import ReviewScreen from './ReviewScreen';
@@ -35,6 +36,8 @@ type Screen =
   | 'review'
   | 'scanKey'
   | 'result'
+  | 'scanAddressKey'
+  | 'addresses'
   | 'settings'
   | 'settingsLanguage'
   | 'consentReview'
@@ -65,6 +68,7 @@ function SignerContent() {
 
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   const [parts, setParts] = useState<string[]>([]);
+  const [addresses, setAddresses] = useState<KeyAddresses | null>(null);
   const [progress, setProgress] = useState<{ got: number; total: number } | null>(null);
   const collector = useRef(new QrCollector());
   const [license, setLicense] = useState<{ title: string; text: string } | null>(null);
@@ -128,9 +132,23 @@ function SignerContent() {
     [language, loaded, nav],
   );
 
+  const onAddressKey = useCallback(
+    (text: string): string | null => {
+      const result = addressesOfKeyQr(text);
+      if (!result.ok) {
+        return t(language, `signer.err.${result.code}`);
+      }
+      setAddresses(result.addresses);
+      nav.push('addresses');
+      return null;
+    },
+    [language, nav],
+  );
+
   const backHome = useCallback(() => {
     setLoaded(null);
     setParts([]);
+    setAddresses(null);
     nav.reset('home');
   }, [nav]);
 
@@ -175,6 +193,7 @@ function SignerContent() {
           language={language}
           tampered={tampered}
           onLoad={startScan}
+          onAddresses={() => nav.push('scanAddressKey')}
           onSettings={() => nav.push('settings')}
         />
       );
@@ -219,6 +238,20 @@ function SignerContent() {
     case 'result':
       return loaded === null ? null : (
         <ResultScreen language={language} loaded={loaded} parts={parts} onClose={backHome} />
+      );
+    case 'scanAddressKey':
+      return (
+        <ScanScreen
+          language={language}
+          title={t(language, 'signer.addr.title')}
+          hint={t(language, 'signer.addr.scanHint')}
+          onBack={nav.pop}
+          onValue={onAddressKey}
+        />
+      );
+    case 'addresses':
+      return addresses === null ? null : (
+        <AddressScreen language={language} addresses={addresses} onClose={backHome} />
       );
     case 'settings':
       return (

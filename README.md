@@ -2,6 +2,8 @@
 
 [한국어](README.ko.md)
 
+> Latest version: **1.1.0**. See the [release](https://github.com/HeiheiSkippy/PaperWalletHelper/releases/tag/v1.1.0) for what changed.
+
 A pair of Android apps for using BTC/BMB and EVM (BSC) paper wallets in an air-gapped setup. The Offline app
 (PaperWallet Helper Offline) runs on a device with every external connection cut off and signs transactions with
 your paper wallet's private key QR. The Online app (PaperWallet Helper Online) runs on your everyday phone and
@@ -15,6 +17,8 @@ This is an unofficial tool built by an individual and has not had a security aud
 - The Offline app scans the private key QR only at signing time and never saves it on the device. Once signing is
   done the key bytes are overwritten with zeros, but with JavaScript the memory is only cleared once the app
   fully exits, so the Offline app is made to exit the moment it leaves the screen.
+- The Offline app can work out the EVM public address from the private key of a BTC/BMB-only paper wallet
+  and show it as a QR, so the same paper wallet can also be used as an EVM wallet.
 - The Offline app checks the transaction the Online app built as follows.
   - BTC/BMB: every input must be a UTXO of the sending address, change must go back to the sending address, the
     fee rate must be under the limit, and the sighash type must be SIGHASH_ALL.
@@ -29,7 +33,9 @@ This is an unofficial tool built by an individual and has not had a security aud
 ## Supported
 
 - Signing works only with a paper wallet's private key QR. Seed phrase QR codes cannot be used for signing.
-- BTC/BMB paper wallets: BTC and BMB (BTCMobick) on legacy (starting with 1) and native SegWit (starting with bc1q) addresses
+- BTC/BMB paper wallets: BTC and BMB (BTCMobick). For now the apps are built for legacy paper wallets with addresses starting
+  with 1. Private keys must start with K or L. Native SegWit addresses (starting with bc1q) can still be viewed and sent from,
+  but the Offline app's Show public address only shows the address starting with 1.
 - EVM (BSC) paper wallets: BNB, WBMB, MOVN, USDT
 - There is no token swap feature.
 
@@ -57,7 +63,7 @@ The code that handles private keys and checks transactions is in these files.
 
 | File | What it does |
 |---|---|
-| `app/src/signer/flow.ts` | Offline app flow: scan the transaction QR, check it, verify the key, sign, erase the key |
+| `app/src/signer/flow.ts` | Offline app flow: scan the transaction QR, check it, verify the key, sign, erase the key, work out public addresses from a key |
 | `app/src/core/btc/key.ts` | Parsing BTC/BMB private key (WIF) QR codes and deriving addresses |
 | `app/src/core/btc/psbt.ts` | Parsing BTC/BMB transactions (PSBT) and pre-signing checks |
 | `app/src/core/btc/sign.ts` | Signing BTC/BMB transactions |

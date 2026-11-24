@@ -63,6 +63,7 @@ const en: Dict = {
   'signer.home.step2': 'Check the recipient address and amount',
   'signer.home.step3': 'Sign with your paper wallet’s private key QR',
   'signer.home.load': 'Load transaction',
+  'signer.home.addresses': 'Show public address',
   'signer.home.settings': 'Settings',
 
   'signer.step.tx': 'Transaction QR',
@@ -129,16 +130,21 @@ const en: Dict = {
   'signer.err.key.range': 'This isn’t a valid private key.',
   'signer.err.key.not-this-key': 'This private key doesn’t match the sending address.',
   'signer.err.key.evm-for-btc': 'This is an EVM private key. Scan the private key QR of a BTC/BMB paper wallet.',
-  'signer.err.key.btc-for-evm': 'This is a BTC/BMB private key. Scan the private key QR of an EVM paper wallet.',
 
   'signer.result.title': 'Transaction signed',
   'signer.result.lead': 'In the Online app, tap Load signed transaction and scan this QR.',
+  'signer.addr.title': 'Public address',
+  'signer.addr.scanHint': "Fit the paper wallet's private key QR inside the square.",
+  'signer.addr.tab.btc': 'BTC/BMB',
+  'signer.addr.tab.evm': 'EVM (BSC)',
+  'signer.addr.address': 'Public address',
   'qr.pieces': 'Animated QR ({total} frames)',
 
   'common.cancel': 'Cancel',
 
-  'bc.home.add': '+ Add address',
-  'bc.home.empty': 'No paper wallets yet. Add a public address QR to see its balance.',
+  'bc.home.lookup': 'Check balance',
+  'bc.home.list': 'Registered addresses',
+  'bc.home.empty': 'No registered addresses.',
   'bc.home.send': 'Send',
   'bc.home.settings': 'Settings',
   'bc.home.reorder': 'Reorder',
@@ -151,6 +157,9 @@ const en: Dict = {
   'bc.pending.change': 'Change (unconfirmed) +{amount}',
   'bc.balance.refresh': 'Refresh balances',
 
+  'bc.lookup.title': 'Check balance',
+  'bc.lookup.register': 'Register',
+  'bc.lookup.registered': '✓ Registered',
   'bc.scanWallet.title': 'Scan address QR',
   'bc.scanWallet.hint': 'Line up the paper wallet’s public address QR inside the frame.',
   'bc.addr.err.private-key': 'This is a private key QR. The Online app only scans public address QR codes.',

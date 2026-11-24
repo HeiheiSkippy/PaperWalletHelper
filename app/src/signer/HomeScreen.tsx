@@ -10,6 +10,7 @@ type Props = {
   language: Language;
   tampered: boolean;
   onLoad: () => void;
+  onAddresses: () => void;
   onSettings: () => void;
 };
 
@@ -19,7 +20,7 @@ const ASSETS = [
   { name: 'WBMB · MOVN', note: '(BSC)', logo: 'BSC' },
 ];
 
-const HomeScreen: React.FC<Props> = ({ language, tampered, onLoad, onSettings }) => {
+const HomeScreen: React.FC<Props> = ({ language, tampered, onLoad, onAddresses, onSettings }) => {
   const insets = useSafeAreaInsets();
   return (
     <View
@@ -61,7 +62,10 @@ const HomeScreen: React.FC<Props> = ({ language, tampered, onLoad, onSettings })
       {tampered && <Warn>{t(language, 'settings.tampered')}</Warn>}
 
       <View style={styles.spacer} />
-      <Button label={t(language, 'signer.home.load')} kind="primary" onPress={onLoad} style={styles.cta} />
+      <View style={styles.ctas}>
+        <Button label={t(language, 'signer.home.addresses')} onPress={onAddresses} style={styles.cta} />
+        <Button label={t(language, 'signer.home.load')} kind="primary" onPress={onLoad} style={styles.cta} />
+      </View>
     </View>
   );
 };
@@ -87,6 +91,7 @@ const styles = StyleSheet.create({
   note: { color: Theme.colors.textMuted },
   spacer: { flex: 1 },
   cta: { minHeight: 56 },
+  ctas: { gap: Theme.space.sm },
 });
 
 export default HomeScreen;

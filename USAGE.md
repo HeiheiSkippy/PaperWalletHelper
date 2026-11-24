@@ -76,8 +76,8 @@ Before you start: send some BNB to paper wallet A to pay for gas.
 #### Stage 1: Create an unsigned transaction in the Online app
 
 1. In the Online app, you can start a send in either of two ways:
-   - Tap Send at the bottom of the home screen, then choose paper wallet A or scan its public address QR.
-   - Tap paper wallet A on the home screen to expand it, then tap Send.
+   - Tap Check balance on the home screen, scan paper wallet A's public address QR, then tap Send.
+   - In Registered addresses on the home screen, tap paper wallet A to expand it, then tap Send.
 2. Under Asset, choose MOVN.
 3. Paste the recipient address, or tap QR and scan the recipient address QR.
 4. Enter the amount of MOVN to send.

@@ -43,6 +43,37 @@ const WIF_KEY = /^\s*[5KLc][1-9A-HJ-NP-Za-km-z]{50,51}\s*$/;
 const MNEMONIC = /^\s*([a-zㄱ-ㆎ가-힣]+\s+){11,23}[a-zㄱ-ㆎ가-힣]+\s*$/;
 const SEED_QR = /^\s*(\d{48}|\d{96})\s*$/;
 
+export type KeyAddresses = { pkh: string | null; evm: string };
+
+export type AddressesResult = { ok: true; addresses: KeyAddresses } | { ok: false; code: string };
+
+const EVM_ADDRESS = /^\s*(0x)?[0-9a-fA-F]{40}\s*$/;
+
+// A WIF key yields both addresses. A hex key yields only the EVM address,
+// because BTC·BMB signing does not take hex keys.
+export function addressesOfKeyQr(keyText: string): AddressesResult {
+  if (MNEMONIC.test(keyText) || SEED_QR.test(keyText)) {
+    return { ok: false, code: 'key.mnemonic' };
+  }
+  const hex = HEX_KEY.test(keyText) || EVM_ADDRESS.test(keyText);
+  let key: Uint8Array;
+  try {
+    key = hex ? readPrivateKeyQr(keyText) : readWifQr(keyText);
+  } catch (e) {
+    if (e instanceof KeyError || e instanceof BtcKeyError) {
+      return { ok: false, code: `key.${e.code}` };
+    }
+    throw e;
+  }
+  try {
+    // Paper wallets in use print legacy 1… addresses, so bc1q is not offered.
+    const pkh = hex ? null : addressesOfKey(key)[0].address;
+    return { ok: true, addresses: { pkh, evm: addressOfKey(key) } };
+  } finally {
+    wipe(key);
+  }
+}
+
 // Reads the key QR for the loaded transaction, signs, and wipes the key.
 export function signLoaded(loaded: Loaded, keyText: string): SignResult {
   if (MNEMONIC.test(keyText) || SEED_QR.test(keyText)) {
@@ -75,14 +106,12 @@ export function signLoaded(loaded: Loaded, keyText: string): SignResult {
     }
   }
 
-  if (WIF_KEY.test(keyText)) {
-    return { ok: false, code: 'key.btc-for-evm' };
-  }
+  // A WIF key is accepted too: Show public address gives its EVM address.
   let key: Uint8Array;
   try {
-    key = readPrivateKeyQr(keyText);
+    key = WIF_KEY.test(keyText) ? readWifQr(keyText) : readPrivateKeyQr(keyText);
   } catch (e) {
-    if (e instanceof KeyError) {
+    if (e instanceof KeyError || e instanceof BtcKeyError) {
       return { ok: false, code: `key.${e.code}` };
     }
     throw e;

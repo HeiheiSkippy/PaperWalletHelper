@@ -43,6 +43,7 @@ import SentScreen from './SentScreen';
 import TxQrScreen from './TxQrScreen';
 import AssetScreen from './AssetScreen';
 import WalletScreen from './WalletScreen';
+import LookupScreen from './LookupScreen';
 import ReceiveScreen from './ReceiveScreen';
 import { Wallet, moveWallet, readWalletQr, readWallets } from './wallets';
 
@@ -55,6 +56,7 @@ type Screen =
   | 'lock'
   | 'home'
   | 'scanWallet'
+  | 'lookup'
   | 'addWallet'
   | 'editWallet'
   | 'receive'
@@ -114,6 +116,7 @@ function BroadcasterContent() {
   const [book, setBook] = useState<BalanceBook>({});
   const [refreshing, setRefreshing] = useState(false);
   const [candidate, setCandidate] = useState<Wallet | null>(null);
+  const [lookup, setLookup] = useState<Wallet | null>(null);
   const [editing, setEditing] = useState<Wallet | null>(null);
   const [receiving, setReceiving] = useState<Wallet | null>(null);
   const [viewing, setViewing] = useState<{ wallet: Wallet; asset: Asset } | null>(null);
@@ -230,7 +233,7 @@ function BroadcasterContent() {
   );
 
   const onWalletQr = useCallback(
-    (text: string, next: 'addWallet' | 'sendForm'): string | null => {
+    (text: string, next: 'lookup' | 'sendForm'): string | null => {
       const read = readWalletQr(text);
       if (!read.ok) {
         return t(language, `bc.addr.err.${read.code}`);
@@ -242,16 +245,14 @@ function BroadcasterContent() {
         startSend(known ?? { kind: read.kind, address: read.address, name: t(language, 'bc.from.scanned'), memo: '' });
         return null;
       }
-      setCandidate({
-        kind: read.kind,
-        address: read.address,
-        name: t(language, 'bc.add.defaultName', { n: String(wallets.length + 1) }),
-        memo: '',
-      });
-      nav.push('addWallet');
+      const looked = known ?? { kind: read.kind, address: read.address, name: t(language, 'bc.from.scanned'), memo: '' };
+      setLookup(looked);
+      loadBalances([looked]);
+      nav.pop();
+      nav.push('lookup');
       return null;
     },
-    [language, nav, startSend, wallets],
+    [language, loadBalances, nav, startSend, wallets],
   );
 
   const onBuild = useCallback(async () => {
@@ -441,7 +442,7 @@ function BroadcasterContent() {
           refreshing={refreshing}
           onRefresh={refreshAll}
           expanded={expanded}
-          onAdd={() => nav.push('scanWallet')}
+          onLookup={() => nav.push('scanWallet')}
           onToggle={w => {
             const opening = !expanded.has(w.address);
             setExpanded(was => {
@@ -470,7 +471,6 @@ function BroadcasterContent() {
           }}
           onSendFrom={w => startSend(w)}
           onMove={(i, step) => save(settings, moveWallet(wallets, i, step))}
-          onSend={() => startSend(null)}
           onSettings={() => nav.push('settings')}
         />
       );
@@ -483,7 +483,34 @@ function BroadcasterContent() {
           hint={t(language, 'bc.scanWallet.hint')}
           above={nav.current === 'scanFrom' ? steps(0) : undefined}
           onBack={nav.pop}
-          onValue={text => onWalletQr(text, nav.current === 'scanFrom' ? 'sendForm' : 'addWallet')}
+          onValue={text => onWalletQr(text, nav.current === 'scanFrom' ? 'sendForm' : 'lookup')}
+        />
+      );
+    case 'lookup':
+      return lookup === null ? null : (
+        <LookupScreen
+          language={language}
+          wallet={lookup}
+          registered={wallets.some(w => w.address === lookup.address)}
+          book={book}
+          onBack={nav.pop}
+          onReload={() => loadBalances([lookup])}
+          onAsset={asset => {
+            setViewing({ wallet: lookup, asset });
+            nav.push('asset');
+          }}
+          onReceive={() => {
+            setReceiving(lookup);
+            nav.push('receive');
+          }}
+          onRegister={() => {
+            setCandidate({
+              ...lookup,
+              name: t(language, 'bc.add.defaultName', { n: String(wallets.length + 1) }),
+            });
+            nav.push('addWallet');
+          }}
+          onSend={() => startSend(lookup)}
         />
       );
     case 'addWallet':

@@ -17,7 +17,7 @@ type Props = {
   refreshing: boolean;
   onRefresh: () => void;
   expanded: ReadonlySet<string>;
-  onAdd: () => void;
+  onLookup: () => void;
   onToggle: (wallet: Wallet) => void;
   onReload: (wallet: Wallet) => void;
   onEdit: (wallet: Wallet) => void;
@@ -25,7 +25,6 @@ type Props = {
   onReceive: (wallet: Wallet) => void;
   onSendFrom: (wallet: Wallet) => void;
   onMove: (index: number, step: -1 | 1) => void;
-  onSend: () => void;
   onSettings: () => void;
 };
 
@@ -46,7 +45,7 @@ const HomeScreen: React.FC<Props> = ({
   refreshing,
   onRefresh,
   expanded,
-  onAdd,
+  onLookup,
   onToggle,
   onReload,
   onEdit,
@@ -54,7 +53,6 @@ const HomeScreen: React.FC<Props> = ({
   onReceive,
   onSendFrom,
   onMove,
-  onSend,
   onSettings,
 }) => {
   const insets = useSafeAreaInsets();
@@ -94,6 +92,14 @@ const HomeScreen: React.FC<Props> = ({
 
         {tampered && <Warn>{t(language, 'settings.tampered')}</Warn>}
 
+        <Button
+          label={t(language, 'bc.home.lookup')}
+          kind="primary"
+          onPress={onLookup}
+          disabled={reordering}
+          style={styles.cta}
+        />
+
         <View style={styles.caption}>
           {reordering ? (
             <>
@@ -104,9 +110,7 @@ const HomeScreen: React.FC<Props> = ({
             </>
           ) : (
             <>
-              <Pressable onPress={onAdd} hitSlop={Theme.space.sm} accessibilityRole="button">
-                <Text style={styles.add}>{t(language, 'bc.home.add')}</Text>
-              </Pressable>
+              <Text style={styles.captionText}>{t(language, 'bc.home.list')}</Text>
               {wallets.length > 1 && (
                 <Pressable
                   onPress={() => setOrdering(true)}
@@ -124,9 +128,9 @@ const HomeScreen: React.FC<Props> = ({
         </View>
 
         {wallets.length === 0 ? (
-          <Pressable onPress={onAdd} style={({ pressed }) => [styles.empty, pressed && styles.pressed]}>
+          <View style={styles.empty}>
             <Text style={styles.emptyText}>{t(language, 'bc.home.empty')}</Text>
-          </Pressable>
+          </View>
         ) : (
           wallets.map((w, i) => {
             const open = !reordering && expanded.has(w.address);
@@ -204,14 +208,6 @@ const HomeScreen: React.FC<Props> = ({
           })
         )}
       </ScrollView>
-
-      <Button
-        label={t(language, 'bc.home.send')}
-        kind="primary"
-        onPress={onSend}
-        disabled={reordering}
-        style={styles.cta}
-      />
     </View>
   );
 };
@@ -247,7 +243,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Theme.space.sm,
     minHeight: 28,
-    marginTop: Theme.space.md,
+    marginTop: Theme.space.sm,
   },
   hint: { flex: 1, color: Theme.colors.textMuted, fontSize: 13 },
   handle: { gap: 4, paddingHorizontal: 2, paddingVertical: Theme.space.xs },
