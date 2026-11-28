@@ -2,6 +2,7 @@ import { keccak_256 } from '@noble/hashes/sha3.js';
 import { UR, URDecoder, UREncoder } from '@ngraveio/bc-ur';
 import { Buffer } from 'buffer';
 import { normalizeAddress } from './address';
+import { CborError, CborValue, decodeCbor, encodeCbor } from './cbor';
 import { EvmSignature } from './evm/sign';
 
 // BTC and BMB travel as the standard crypto-psbt UR. EVM data travels as a
@@ -9,6 +10,11 @@ import { EvmSignature } from './evm/sign';
 // the body.
 const PSBT_TYPE = 'crypto-psbt';
 const BYTES_TYPE = 'bytes';
+// EIP-4527, as sent by wallets that pair with a QR hardware signer.
+const SIGN_REQUEST_TYPE = 'eth-sign-request';
+const SIGNATURE_TYPE = 'eth-signature';
+const DATA_TYPE_LEGACY_TX = 1n;
+const UUID_TAG = 37;
 const MAGIC = [0x42, 0x50, 0x57, 0x01]; // "BPW" v1
 const KIND_EVM_TX = 0x01;
 const KIND_EVM_SIG = 0x02;
@@ -20,8 +26,11 @@ const BYTES_PART_LENGTH = 200;
 
 export type QrPayload =
   | { kind: 'psbt'; psbt: Uint8Array }
-  | { kind: 'evm-tx'; from: string; unsigned: Uint8Array }
-  | { kind: 'evm-sig'; txHash: Uint8Array; signature: EvmSignature };
+  // request is set when the transaction came as an eth-sign-request; the
+  // answer then goes back as an eth-signature.
+  | { kind: 'evm-tx'; from: string; unsigned: Uint8Array; request?: { id: Uint8Array | null } }
+  | { kind: 'evm-sig'; txHash: Uint8Array; signature: EvmSignature }
+  | { kind: 'eth-sig'; requestId: Uint8Array | null; chainId: bigint; signature: EvmSignature };
 
 export type QrErrorCode = 'not-ur' | 'wrong-type' | 'broken' | 'not-this-app';
 
@@ -48,8 +57,71 @@ export function evmTxHash(unsigned: Uint8Array): Uint8Array {
   return keccak_256(unsigned);
 }
 
+// v carries the EIP-155 value (chainId * 2 + 35 + yParity), as a legacy
+// transaction stores it.
+function encodeEthSignature(payload: Extract<QrPayload, { kind: 'eth-sig' }>): Uint8Array {
+  const { r, s, yParity } = payload.signature;
+  if (yParity !== 0 && yParity !== 1) {
+    throw new QrError('broken', 'bad signature record');
+  }
+  let vHex = (payload.chainId * 2n + 35n + BigInt(yParity)).toString(16);
+  if (vHex.length % 2) {
+    vHex = '0' + vHex;
+  }
+  const signature = Uint8Array.from([...toBytes32(r), ...toBytes32(s), ...Buffer.from(vHex, 'hex')]);
+  const map = new Map<CborValue, CborValue>();
+  if (payload.requestId) {
+    map.set(1n, { tag: UUID_TAG, value: payload.requestId });
+  }
+  map.set(2n, signature);
+  return encodeCbor(map);
+}
+
+function decodeSignRequest(cbor: Uint8Array): QrPayload {
+  let value: CborValue;
+  try {
+    value = decodeCbor(cbor);
+  } catch (e) {
+    if (e instanceof CborError) {
+      throw new QrError('broken', e.message);
+    }
+    throw e;
+  }
+  if (!(value instanceof Map)) {
+    throw new QrError('not-this-app', 'sign request is not a map');
+  }
+  const signData = value.get(2n);
+  const dataType = value.get(3n) ?? DATA_TYPE_LEGACY_TX;
+  const address = value.get(6n);
+  if (!(signData instanceof Uint8Array) || signData.length === 0) {
+    throw new QrError('not-this-app', 'sign request has no transaction');
+  }
+  if (dataType !== DATA_TYPE_LEGACY_TX) {
+    throw new QrError('not-this-app', `sign request data type ${String(dataType)} is not a legacy transaction`);
+  }
+  const from =
+    address instanceof Uint8Array && address.length === 20
+      ? normalizeAddress('0x' + Buffer.from(address).toString('hex'))
+      : null;
+  if (!from) {
+    throw new QrError('not-this-app', 'sign request has no address');
+  }
+  let id: Uint8Array | null = null;
+  const tagged = value.get(1n);
+  if (tagged !== undefined) {
+    const raw = tagged !== null && typeof tagged === 'object' && 'tag' in tagged ? tagged.value : tagged;
+    if (!(raw instanceof Uint8Array) || raw.length > 64) {
+      throw new QrError('not-this-app', 'bad request id');
+    }
+    id = raw;
+  }
+  return { kind: 'evm-tx', from, unsigned: signData, request: { id } };
+}
+
 function encodeRecord(payload: QrPayload): Uint8Array {
   switch (payload.kind) {
+    case 'eth-sig':
+      return encodeEthSignature(payload);
     case 'psbt':
       return payload.psbt;
     case 'evm-tx':
@@ -106,9 +178,11 @@ function decodeRecord(type: string, bytes: Uint8Array): QrPayload {
 export function qrParts(payload: QrPayload): string[] {
   const record = Buffer.from(encodeRecord(payload));
   const ur =
-    payload.kind === 'psbt'
-      ? new UR(UR.fromBuffer(record).cbor, PSBT_TYPE)
-      : UR.fromBuffer(record);
+    payload.kind === 'eth-sig'
+      ? new UR(record, SIGNATURE_TYPE)
+      : payload.kind === 'psbt'
+        ? new UR(UR.fromBuffer(record).cbor, PSBT_TYPE)
+        : UR.fromBuffer(record);
   const length = payload.kind === 'psbt' ? PSBT_PART_LENGTH : BYTES_PART_LENGTH;
   const encoder = new UREncoder(ur, length);
   const count = encoder.fragmentsLength === 1 ? 1 : encoder.fragmentsLength * 2;
@@ -135,7 +209,7 @@ export class QrCollector {
       throw new QrError('not-ur', 'not a BC-UR string');
     }
     const type = part.slice(3).split('/')[0];
-    if (type !== PSBT_TYPE && type !== BYTES_TYPE) {
+    if (type !== PSBT_TYPE && type !== BYTES_TYPE && type !== SIGN_REQUEST_TYPE) {
       throw new QrError('wrong-type', `${type} is not used by this app`);
     }
     if (this.type !== null && type !== this.type) {
@@ -162,6 +236,9 @@ export class QrCollector {
       throw new QrError('broken', this.decoder.resultError());
     }
     const ur = this.decoder.resultUR();
+    if (ur.type === SIGN_REQUEST_TYPE) {
+      return { done: true, payload: decodeSignRequest(Uint8Array.from(ur.cbor)) };
+    }
     return { done: true, payload: decodeRecord(ur.type, Uint8Array.from(ur.decodeCBOR())) };
   }
 

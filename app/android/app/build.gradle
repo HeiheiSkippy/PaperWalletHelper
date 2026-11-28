@@ -38,6 +38,11 @@ static int versionCodeFrom(String name) {
 // over each other and an outside verifier needs no key. -Pdist refuses to run
 // without the key, so a debug-signed APK cannot be mistaken for a release.
 def dist = project.hasProperty("dist")
+// -PsideBySide installs next to the real app (own id and name) for phone tests.
+def sideBySide = project.hasProperty("sideBySide")
+if (dist && sideBySide) {
+    throw new GradleException("-PsideBySide is for test builds; drop -Pdist.")
+}
 def keystorePropsFile = rootProject.file("keystore.properties")
 def keystoreProps = new Properties()
 if (dist) {
@@ -63,7 +68,7 @@ android {
 
     defaultConfig {
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionName "1.1.0"
+        versionName "1.2.0"
         versionCode versionCodeFrom(versionName)
     }
 
@@ -73,13 +78,19 @@ android {
             dimension "app"
             applicationId "io.github.heiheiskippy.paperwallethelper.signer"
             minSdkVersion 28
-            resValue "string", "app_name", "PaperWallet Helper Offline"
+            resValue "string", "app_name", sideBySide ? "PaperWallet Helper Offline Test" : "PaperWallet Helper Offline"
+            if (sideBySide) {
+                applicationIdSuffix ".test"
+            }
         }
         broadcaster {
             dimension "app"
             applicationId "io.github.heiheiskippy.paperwallethelper.broadcaster"
             minSdkVersion 34
-            resValue "string", "app_name", "PaperWallet Helper Online"
+            resValue "string", "app_name", sideBySide ? "PaperWallet Helper Online Test" : "PaperWallet Helper Online"
+            if (sideBySide) {
+                applicationIdSuffix ".test"
+            }
         }
     }
     signingConfigs {

@@ -2,7 +2,7 @@
 
 [한국어](README.ko.md)
 
-> Latest version: **1.1.0**. See the [release](https://github.com/HeiheiSkippy/PaperWalletHelper/releases/tag/v1.1.0) for what changed.
+> Latest version: Offline app **1.2.0**, Online app **1.1.0**. See the [release](https://github.com/HeiheiSkippy/PaperWalletHelper/releases/tag/v1.2.0) for what changed.
 
 A pair of Android apps for using BTC/BMB and EVM (BSC) paper wallets in an air-gapped setup. The Offline app
 (PaperWallet Helper Offline) runs on a device with every external connection cut off and signs transactions with
@@ -19,10 +19,14 @@ This is an unofficial tool built by an individual and has not had a security aud
   fully exits, so the Offline app is made to exit the moment it leaves the screen.
 - The Offline app can work out the EVM public address from the private key of a BTC/BMB-only paper wallet
   and show it as a QR, so the same paper wallet can also be used as an EVM wallet.
-- The Offline app checks the transaction the Online app built as follows.
+- The Offline app also signs BSC transactions that MobickOne builds through its Keystone connection. Register the
+  public address QR of an EVM paper wallet through MobickOne's Keystone connection menu, and MobickOne can build
+  transactions for it; the Offline app checks and signs them, and MobickOne broadcasts them. BTC/BMB paper wallets
+  cannot be used this way because MobickOne does not accept them for registration.
+- Before signing, the Offline app checks the transaction as follows.
   - BTC/BMB: every input must be a UTXO of the sending address, change must go back to the sending address, the
     fee rate must be under the limit, and the sighash type must be SIGHASH_ALL.
-  - BSC: only BNB transfers and WBMB, MOVN, or USDT transfers are signed, with a gas price cap (1 gwei) and an
+  - BSC: only BNB transfers and WBMB, MOVN, or USDT transfers are signed, with a gas price cap (3 gwei) and an
     allowed gas limit range.
 - Before creating a BSC transaction, the Online app asks the node to simulate it and does not create it if the
   node reports that it would fail. After broadcasting, it shows whether the transaction was included in a block.
@@ -36,7 +40,7 @@ This is an unofficial tool built by an individual and has not had a security aud
 - BTC/BMB paper wallets: BTC and BMB (BTCMobick). For now the apps are built for legacy paper wallets with addresses starting
   with 1. Private keys must start with K or L. Native SegWit addresses (starting with bc1q) can still be viewed and sent from,
   but the Offline app's Show public address only shows the address starting with 1.
-- EVM (BSC) paper wallets: BNB, WBMB, MOVN, USDT
+- EVM (BSC) paper wallets: BNB, WBMB, MOVN, USDT. Transactions built in MobickOne are signed only for these four as well.
 - There is no token swap feature.
 
 ## Where to get it
@@ -71,7 +75,8 @@ The code that handles private keys and checks transactions is in these files.
 | `app/src/core/evm/send.ts` | Deciding which BSC transactions may be signed (BNB transfers; WBMB, MOVN, USDT transfers) |
 | `app/src/core/evm/sign.ts` | Signing BSC transactions |
 | `app/src/core/chain.ts` | Chain ID, token contract addresses, gas price cap |
-| `app/src/core/qr.ts` | QR format between the two apps (BC-UR) |
+| `app/src/core/qr.ts` | QR format between the two apps (BC-UR); reading MobickOne sign requests (eth-sign-request) and answering with eth-signature |
+| `app/src/core/cbor.ts` | CBOR decoding for MobickOne sign requests |
 | `app/android/app/src/signer/AndroidManifest.xml` | Removing the Offline app's network permissions |
 | `app/android/app/src/main/java/io/github/heiheiskippy/paperwallethelper/MainActivity.kt` | Screenshot blocking, rejecting touches on an obscured screen, closing the Offline app when it leaves the screen |
 

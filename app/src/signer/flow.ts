@@ -6,6 +6,7 @@ import { signSend } from '../core/evm/sign';
 import { sameAddress } from '../core/address';
 import { KeyError, addressOfKey, readPrivateKeyQr, wipe as wipeKey } from '../core/key';
 import { QrPayload, evmTxHash, qrParts } from '../core/qr';
+import { CHAIN_ID } from '../core/chain';
 import { Loaded } from '../tx';
 
 export type { Loaded };
@@ -20,7 +21,13 @@ export function load(payload: QrPayload): LoadResult {
     if (payload.kind === 'evm-tx') {
       return {
         ok: true,
-        loaded: { kind: 'evm', from: payload.from, unsigned: payload.unsigned, view: readSend(payload.unsigned) },
+        loaded: {
+          kind: 'evm',
+          from: payload.from,
+          unsigned: payload.unsigned,
+          view: readSend(payload.unsigned),
+          request: payload.request,
+        },
       };
     }
     return { ok: false, code: 'signed-qr' };
@@ -122,6 +129,12 @@ export function signLoaded(loaded: Loaded, keyText: string): SignResult {
   }
   try {
     const { signature } = signSend(loaded.unsigned, key);
+    if (loaded.request) {
+      return {
+        ok: true,
+        parts: qrParts({ kind: 'eth-sig', requestId: loaded.request.id, chainId: CHAIN_ID, signature }),
+      };
+    }
     return {
       ok: true,
       parts: qrParts({ kind: 'evm-sig', txHash: evmTxHash(loaded.unsigned), signature }),

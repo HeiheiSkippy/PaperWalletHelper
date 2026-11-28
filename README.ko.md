@@ -2,7 +2,7 @@
 
 [English](README.md)
 
-> 최신 버전: **1.1.0**. 달라진 점은 [릴리스](https://github.com/HeiheiSkippy/PaperWalletHelper/releases/tag/v1.1.0)에서 확인하세요.
+> 최신 버전: 서명앱 **1.2.0**, 전송앱 **1.1.0**. 달라진 점은 [릴리스](https://github.com/HeiheiSkippy/PaperWalletHelper/releases/tag/v1.2.0)에서 확인하세요.
 
 BTC·BMB와 EVM(BSC) 종이지갑을 에어갭 방식으로 쓰게 해 주는 안드로이드 앱 한 쌍입니다.
 서명앱(PaperWallet Helper Offline)이 외부 연결을 끊은 기기에서 종이지갑의 개인키 QR로 거래에 서명하고,
@@ -19,10 +19,13 @@ BTC·BMB와 EVM(BSC) 종이지갑을 에어갭 방식으로 쓰게 해 주는 �
   했습니다.
 - 서명앱은 BTC·BMB 전용 종이지갑(예: 중국지갑)을 EVM 지갑으로도 쓸 수 있도록, 그 종이지갑의 개인키로 EVM 공개주소를
   계산해 QR로 보여 줍니다.
-- 서명앱은 전송앱이 만든 거래를 다음과 같이 검증합니다.
+- 서명앱은 모빅원이 키스톤 연결로 만든 BSC 거래에도 서명합니다. 모빅원의 키스톤 연결 메뉴로 EVM 종이지갑의
+  공개주소 QR을 등록하면 모빅원에서 거래를 만들 수 있으며, 이 거래를 서명앱이 검증해 서명하고 모빅원이 이를 전송할
+  수 있습니다. BTC·BMB 종이지갑은 모빅원이 등록을 받지 않기 때문에 이 방식으로 쓸 수 없습니다.
+- 서명앱은 서명하기 전에 거래를 다음과 같이 검증합니다.
   - BTC·BMB: 입력이 모두 발신 주소의 UTXO인지, 잔돈이 발신 주소로 돌아오는지, 수수료율이 상한을 넘지
     않는지, SIGHASH_ALL인지 확인합니다.
-  - BSC: BNB 송금과 WBMB·MOVN·USDT 송금만 서명하고, 가스 가격 상한(1 gwei)과 가스 한도 범위를 확인합니다.
+  - BSC: BNB 송금과 WBMB·MOVN·USDT 송금만 서명하고, 가스 가격 상한(3 gwei)과 가스 한도 범위를 확인합니다.
 - 전송앱은 BSC 거래를 만들기 전에 노드에 실행 결과를 미리 확인하고, 실패한다는 답이 오면 거래를 만들지
   않습니다. 전송한 뒤에는 거래가 블록에 포함됐는지 알려 줍니다.
 - 두 앱은 열 때마다 기기의 화면 잠금을 요구해 타인의 접근을 막습니다.
@@ -34,7 +37,7 @@ BTC·BMB와 EVM(BSC) 종이지갑을 에어갭 방식으로 쓰게 해 주는 �
 - BTC·BMB 종이지갑: 지금은 1로 시작하는 레거시 주소의 종이지갑을 위한 앱입니다. 개인키는 K 또는 L로 시작하는 것만
   쓸 수 있습니다. 네이티브 세그윗(bc1q로 시작) 주소도 잔액 조회와 송금은 되지만, 서명앱의 공개주소 확인은 1로 시작하는
   주소만 보여 줍니다.
-- EVM(BSC) 종이지갑: BNB, WBMB, MOVN, USDT
+- EVM(BSC) 종이지갑: BNB, WBMB, MOVN, USDT. 모빅원에서 만든 거래도 이 네 가지만 서명합니다.
 - 토큰 교환 기능은 없습니다.
 
 ## 받는 곳
@@ -68,7 +71,8 @@ E1:0E:AE:85:9D:30:CA:63:57:E4:85:FD:74:4D:18:1D:B1:A9:3C:DD:3C:EF:05:9E:D6:8C:93
 | `app/src/core/evm/send.ts` | 서명할 수 있는 BSC 거래 판정(BNB 송금, WBMB·MOVN·USDT 송금) |
 | `app/src/core/evm/sign.ts` | BSC 거래 서명 |
 | `app/src/core/chain.ts` | 체인 ID, 토큰 계약 주소, 가스 가격 상한 |
-| `app/src/core/qr.ts` | 두 앱 사이의 QR 형식(BC-UR) |
+| `app/src/core/qr.ts` | 두 앱 사이의 QR 형식(BC-UR), 모빅원 서명 요청(eth-sign-request) 읽기와 서명 응답(eth-signature) |
+| `app/src/core/cbor.ts` | 모빅원 서명 요청의 CBOR 해석 |
 | `app/android/app/src/signer/AndroidManifest.xml` | 서명앱의 네트워크 권한 제거 |
 | `app/android/app/src/main/java/io/github/heiheiskippy/paperwallethelper/MainActivity.kt` | 화면 캡처 차단, 덮인 화면의 터치 차단, 서명앱이 내려가면 종료 |
 

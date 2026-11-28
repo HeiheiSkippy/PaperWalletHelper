@@ -10,5 +10,6 @@ export const WBMB_DECIMALS = 8;
 
 export const GWEI = amounts.GWEI;
 
-// Refuse to sign above this. BSC was at 0.05 gwei on 2026-10-16.
-export const MAX_GAS_PRICE = 1n * GWEI;
+// Refuse to sign above this. BSC was at 0.05 gwei on 2026-10-16; MobickOne
+// asks for 1.5 gwei (2026-11-28).
+export const MAX_GAS_PRICE = 3n * GWEI;

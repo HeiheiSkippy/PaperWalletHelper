@@ -21,7 +21,9 @@ const ResultScreen: React.FC<Props> = ({ language, loaded, parts, onClose }) => 
           <View style={styles.check}>
             <Text style={styles.checkMark}>✓</Text>
           </View>
-          <Text style={styles.leadText}>{t(language, 'signer.result.lead')}</Text>
+          <Text style={styles.leadText}>
+            {t(language, loaded.kind === 'evm' && loaded.request ? 'signer.result.leadRequest' : 'signer.result.lead')}
+          </Text>
         </View>
         <AnimatedQr language={language} parts={parts} />
         <TxSummary language={language} loaded={loaded} />
